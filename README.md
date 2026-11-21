@@ -4,7 +4,10 @@ A Godot 4 addon that helps make adjustable 3D collision shapes. It's good for st
 You can set the shape in the Inspector or drag the handles directly in the viewport. Corners can be straight cuts or curved, with up to 16 segments per corner.
 The addon builds convex collision shapes for both regular and inward-cut corners.
 
+https://github.com/user-attachments/assets/bd82661b-593f-4ed9-acac-a962931287a9
+
 This release was developed while working on my game in Godot 4.8. 
+
 
 ## Features
 
@@ -19,7 +22,7 @@ This release was developed while working on my game in Godot 4.8.
 2. Extract the ZIP file and place the `custom_shape_collider` folder inside your Godot project's `addons/` directory.
 3. Open **Project → Project Settings → Plugins** and enable **Custom Shape Collider**.
 4. Add a `StaticBody3D`, `RigidBody3D`, `CharacterBody3D`, or `Area3D` to your scene, then add `CustomShape3D` as a direct child.
-5. Select `CustomShape3D` to edit it in the Inspector or directly in the 3D viewport.
+5. Select `CustomShape3D` to edit it in the Inspector or directly in the Viewport.
 
 Example scene tree:
 
