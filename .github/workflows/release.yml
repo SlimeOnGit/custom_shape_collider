@@ -1,0 +1,65 @@
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Package addon and publish release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          cfg="addons/custom_shape_collider/plugin.cfg"
+          if [[ ! -f "$cfg" ]]; then
+            echo "::error::Missing $cfg"
+            exit 1
+          fi
+
+          version="$(sed -nE 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*"([^"]+)".*$/\1/p' "$cfg" | head -n 1)"
+          if [[ -z "$version" ]]; then
+            echo "::error::Could not read version from $cfg"
+            exit 1
+          fi
+
+          tag="v${version}"
+
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            if [[ "$GITHUB_REF_NAME" != "$tag" ]]; then
+              echo "::error::Tag $GITHUB_REF_NAME does not match plugin.cfg ($tag)"
+              exit 1
+            fi
+          else
+            if [[ "$GITHUB_REF_NAME" != "main" ]]; then
+              echo "::error::Run manual releases from the main branch"
+              exit 1
+            fi
+            if git ls-remote --exit-code origin "refs/tags/$tag" >/dev/null 2>&1; then
+              echo "::error::Tag $tag already exists. Update the version in plugin.cfg for a new release."
+              exit 1
+            fi
+          fi
+
+          mkdir -p dist
+          archive="dist/custom_shape_collider_${version}.zip"
+          (cd addons && zip -qr "$GITHUB_WORKSPACE/$archive" custom_shape_collider)
+
+          gh release create "$tag" "$archive" \
+            --title "Custom Shape Collider $tag" \
+            --generate-notes \
+            --target "$GITHUB_SHA"
