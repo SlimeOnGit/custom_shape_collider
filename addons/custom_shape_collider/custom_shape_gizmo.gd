@@ -11,6 +11,9 @@ const CORNER_PROPERTIES := [
 	"front_left_cut", "front_right_cut", "back_right_cut", "back_left_cut"
 ]
 const CORNER_NAMES := ["Front-left", "Front-right", "Back-right", "Back-left"]
+const HANDLE_SIZE := 18
+const DETAIL_HANDLE_SIZE := 14
+const GIZMO_ON_TOP := true
 
 var _preview_material: StandardMaterial3D
 var _outline_material: StandardMaterial3D
@@ -34,8 +37,8 @@ func _init() -> void:
 	_x_handles_material = _make_handle_material(Color("df5252"))
 	_z_handles_material = _make_handle_material(Color("438fe6"))
 	_height_handles_material = _make_handle_material(Color("41b86b"))
-	_corner_handles_material = _make_handle_material(Color("171717"), true)
-	_curve_handles_material = _make_handle_material(Color("a0a0a0"), true)
+	_corner_handles_material = _make_handle_material(Color("171717"), true, DETAIL_HANDLE_SIZE)
+	_curve_handles_material = _make_handle_material(Color("a0a0a0"), true, DETAIL_HANDLE_SIZE)
 
 func _make_line_material(color: Color) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
@@ -43,10 +46,11 @@ func _make_line_material(color: Color) -> StandardMaterial3D:
 	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	material.albedo_color = color
+	material.no_depth_test = GIZMO_ON_TOP
 	return material
 
-func _make_handle_material(color: Color, square: bool = false) -> StandardMaterial3D:
-	var texture := _make_handle_icon(color, square)
+func _make_handle_material(color: Color, square: bool = false, size: int = HANDLE_SIZE) -> StandardMaterial3D:
+	var texture := _make_handle_icon(color, square, size)
 	var material := StandardMaterial3D.new()
 	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	material.use_point_size = true
@@ -58,18 +62,22 @@ func _make_handle_material(color: Color, square: bool = false) -> StandardMateri
 	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
 	material.alpha_scissor_threshold = 0.1
 	material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	material.no_depth_test = GIZMO_ON_TOP
 	return material
 
-func _make_handle_icon(fill: Color, square: bool = false) -> ImageTexture:
-	var img := Image.create(16, 16, false, Image.FORMAT_RGBA8)
+func _make_handle_icon(fill: Color, square: bool = false, size: int = HANDLE_SIZE) -> ImageTexture:
+	var img := Image.create(size, size, false, Image.FORMAT_RGBA8)
 	img.fill(Color.TRANSPARENT)
 	var border := Color(0.94, 0.94, 0.94) if fill == Color("171717") else Color(0.12, 0.12, 0.12)
-	for y in range(16):
-		for x in range(16):
-			var dx := absf(float(x) - 7.5)
-			var dy := absf(float(y) - 7.5)
-			var outer := maxf(dx, dy) <= 6.0 if square else Vector2(dx, dy).length_squared() <= 36.0
-			var inner := maxf(dx, dy) <= 4.0 if square else Vector2(dx, dy).length_squared() <= 16.0
+	var center := (float(size) - 1.0) * 0.5
+	var outer_radius := float(size) * 0.375
+	var inner_radius := float(size) * 0.25
+	for y in range(size):
+		for x in range(size):
+			var dx := absf(float(x) - center)
+			var dy := absf(float(y) - center)
+			var outer := maxf(dx, dy) <= outer_radius if square else Vector2(dx, dy).length_squared() <= outer_radius * outer_radius
+			var inner := maxf(dx, dy) <= inner_radius if square else Vector2(dx, dy).length_squared() <= inner_radius * inner_radius
 			if outer:
 				img.set_pixel(x, y, fill if inner else border)
 	return ImageTexture.create_from_image(img)
@@ -82,6 +90,8 @@ func _has_gizmo(node: Node3D) -> bool:
 
 func _redraw(gizmo: EditorNode3DGizmo) -> void:
 	gizmo.clear()
+	if not gizmo.is_selected():
+		return
 	var collider := gizmo.get_node_3d() as CustomShape3D
 	var outline := collider.get_shape_outline()
 	var top := collider.get_top_y()
